@@ -448,3 +448,52 @@ class TestElGr:
             suffix = faker.company_suffix()
             assert isinstance(suffix, str)
             assert suffix in ElGrCompanyProvider.company_suffixes
+
+
+class TestEnAu:
+    """Test en_AU company provider methods"""
+
+    def validate_abn(self, abn):
+        digits = [int(digit) for digit in str(abn)]
+        weights = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
+        digits[0] -= 1
+
+        check_total = sum(digit * weight for digit, weight in zip(digits, weights))
+
+        return check_total % 89 == 0
+
+    def validate_acn(self, acn):
+        weights = [8, 7, 6, 5, 4, 3, 2, 1]
+        digits_to_check = [int(digit) for digit in f"{acn:09}"[:-1]]
+        check_total = sum(digit * weight for digit, weight in zip(digits_to_check, weights))
+
+        expected_check_digit = 10 - (check_total % 10)
+        if expected_check_digit == 10:
+            expected_check_digit = 0
+
+        actual_check_digit = acn % 10
+        return expected_check_digit == actual_check_digit
+
+    def test_acn(self, faker, num_samples):
+        for _ in range(num_samples):
+            acn = faker.acn()
+            assert isinstance(acn, int)
+            assert self.validate_acn(acn)
+
+    def test_abn(self, faker, num_samples):
+        for _ in range(num_samples):
+            abn = faker.abn()
+            assert isinstance(abn, int)
+            assert len(str(abn)) == 11
+            assert self.validate_abn(abn)
+
+    def test_abn_acn(self, faker, num_samples):
+        for _ in range(num_samples):
+            abn, acn = faker.abn_acn()
+            assert isinstance(abn, int)
+            assert isinstance(acn, int)
+
+            assert len(str(abn)) == 11
+            assert self.validate_abn(abn)
+            assert self.validate_acn(acn)
+            assert str(abn)[2:] == f"{acn:09}"
